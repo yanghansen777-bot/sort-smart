@@ -36,6 +36,10 @@ const server = http.createServer((request, response) => {
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (request.method === 'OPTIONS') { response.writeHead(204); return response.end(); }
+  if (request.method === 'GET' && request.url === '/') {
+    response.writeHead(200, { 'Content-Type': 'text/plain' });
+    return response.end('Camera Reminder helper is running.');
+  }
   if (request.method !== 'POST' || request.url !== '/ask') { response.writeHead(404); return response.end(); }
   let raw = '';
   request.on('data', (chunk) => { raw += chunk; });
