@@ -93,5 +93,3 @@ const styles = StyleSheet.create({
   reminder: { color: '#10231d', fontSize: 24, lineHeight: 30, fontWeight: '800', marginTop: 8 },
   safety: { color: '#b8c8bd', fontSize: 13, lineHeight: 19, marginTop: 12 },
 });
-  },
-});
