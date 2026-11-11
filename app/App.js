@@ -42,7 +42,7 @@ export default function App() {
       if (Number.isNaN(date.getTime())) throw new Error('date error');
       await Notifications.scheduleNotificationAsync({
         content: { title: 'Camera Reminder', body: data.message },
-        trigger: date,
+        trigger: { date },
       });
       setMessage(data.message);
       await AsyncStorage.setItem('camera-reminder', JSON.stringify({ date: classDate, time: classTime, message: data.message }));
