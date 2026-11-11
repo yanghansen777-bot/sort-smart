@@ -45,7 +45,7 @@ export default function App() {
       try {
         await Notifications.scheduleNotificationAsync({
           content: { title: 'Camera Reminder', body: data.message },
-          trigger: { date },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
         });
       } catch {
         Alert.alert('Reminder saved', 'The reminder is ready, but notifications are turned off. Enable notifications for Expo Go in iPad Settings.');
