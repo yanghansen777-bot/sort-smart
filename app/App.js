@@ -38,14 +38,18 @@ export default function App() {
       });
       if (!response.ok) throw new Error('helper error');
       const data = await response.json();
-      const date = new Date(`${classDate}T${classTime}:00`);
-      if (Number.isNaN(date.getTime())) throw new Error('date error');
-      await Notifications.scheduleNotificationAsync({
-        content: { title: 'Camera Reminder', body: data.message },
-        trigger: { date },
-      });
       setMessage(data.message);
       await AsyncStorage.setItem('camera-reminder', JSON.stringify({ date: classDate, time: classTime, message: data.message }));
+      const date = new Date(`${classDate}T${classTime}:00`);
+      if (Number.isNaN(date.getTime())) throw new Error('date error');
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: 'Camera Reminder', body: data.message },
+          trigger: { date },
+        });
+      } catch {
+        Alert.alert('Reminder saved', 'The reminder is ready, but notifications are turned off. Enable notifications for Expo Go in iPad Settings.');
+      }
     } catch {
       Alert.alert('Could not create the reminder', 'Please check your OpenAI key, Wi-Fi, and that the helper is running.');
     } finally {
