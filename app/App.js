@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 const HELPER_URL = 'http://192.168.86.29:3001/ask';
+const AI_URL = Platform.OS === 'web' ? '/api/ask' : HELPER_URL;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
@@ -24,14 +25,14 @@ export default function App() {
       setClassTime(reminder.time);
       setMessage(reminder.message);
     });
-    Notifications.requestPermissionsAsync();
+    if (Platform.OS !== 'web') Notifications.requestPermissionsAsync();
   }, []);
 
   async function createReminder() {
     setThinking(true);
     setMessage('');
     try {
-      const response = await fetch(HELPER_URL, {
+      const response = await fetch(AI_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: classDate, time: classTime }),
@@ -43,6 +44,7 @@ export default function App() {
       const date = new Date(`${classDate}T${classTime}:00`);
       if (Number.isNaN(date.getTime())) throw new Error('date error');
       try {
+        if (Platform.OS === 'web') return;
         await Notifications.scheduleNotificationAsync({
           content: { title: 'Camera Reminder', body: data.message },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
@@ -58,8 +60,8 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <SafeAreaView style={[styles.container, Platform.OS === 'web' && styles.webOuter]}>
+      <View style={[styles.content, Platform.OS === 'web' && styles.webPhone]}>
         <Text style={styles.eyebrow}>CAMERA REMINDER</Text>
         <Text style={styles.title}>Leave the camera ready for the next person.</Text>
         <Text style={styles.subhead}>Tell me when video production class ends. I’ll remember it for you.</Text>
@@ -83,6 +85,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#10231d',
   },
+  webOuter: { backgroundColor: '#e7e4dc', alignItems: 'center' },
+  webPhone: { width: 400, maxWidth: '100%', minHeight: '100vh', backgroundColor: '#10231d' },
   content: { padding: 24, gap: 12 },
   eyebrow: { color: '#b8f36b', fontWeight: '800', letterSpacing: 2, fontSize: 13 },
   title: { color: '#f5f7ed', fontSize: 32, fontWeight: '800', lineHeight: 37, marginTop: 6 },
