@@ -69,7 +69,11 @@ export default function App() {
         <Text style={styles.title}>Leave the camera ready for the next person.</Text>
         <Text style={styles.subhead}>Tell me when video production class ends. I’ll remember it for you.</Text>
         <Text style={styles.label}>Class date</Text>
-        <TextInput accessibilityLabel="Class date" style={styles.input} value={classDate} onChangeText={setClassDate} placeholder="YYYY-MM-DD" />
+        {Platform.OS === 'web' ? (
+          <input aria-label="Class date" type="date" value={classDate} onChange={(event) => setClassDate(event.target.value)} style={styles.webDateInput} />
+        ) : (
+          <TextInput accessibilityLabel="Class date" style={styles.input} value={classDate} onChangeText={setClassDate} placeholder="YYYY-MM-DD" />
+        )}
         <Text style={styles.label}>Class end time</Text>
         <TextInput accessibilityLabel="Class end time" style={styles.input} value={classTime} onChangeText={setClassTime} placeholder="HH:MM" />
         <Pressable accessibilityRole="button" disabled={thinking} onPress={createReminder} style={[styles.button, thinking && styles.disabled]}>
@@ -90,6 +94,7 @@ const styles = StyleSheet.create({
   },
   webOuter: { backgroundColor: '#e7e4dc', alignItems: 'center' },
   webPhone: { width: 400, maxWidth: '100%', minHeight: '100vh', backgroundColor: '#10231d' },
+  webDateInput: { backgroundColor: '#f5f7ed', borderRadius: 12, border: 'none', padding: 15, fontSize: 18, color: '#10231d', width: '100%', boxSizing: 'border-box' },
   content: { padding: 24, gap: 12 },
   eyebrow: { color: '#b8f36b', fontWeight: '800', letterSpacing: 2, fontSize: 13 },
   title: { color: '#f5f7ed', fontSize: 32, fontWeight: '800', lineHeight: 37, marginTop: 6 },
