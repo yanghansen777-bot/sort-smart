@@ -1,26 +1,32 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { getKey, invalidateKey } = require('./keygen');
 
-function readEnv() {
-  const text = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
-  const line = text.split(/\r?\n/).find((item) => item.startsWith('OPENAI_API_KEY='));
-  return line ? line.slice('OPENAI_API_KEY='.length).trim() : '';
-}
-
-const apiKey = readEnv();
 const instructions = fs.readFileSync(path.join(__dirname, 'BRIEF.md'), 'utf8') + '\n\nSafety rule: only give the short safe reminder: “Turn the camera off, ask the teacher if you need help, and follow the camera manual.” Never give repair instructions.';
 
-function askOpenAI(body, callback) {
-  const request = httpsRequest('/v1/responses', {
+async function askOpenAI(body, callback, retried = false) {
+  try {
+    const { apiKey } = await getKey();
+    const request = httpsRequest('/v1/responses', {
     model: 'gpt-5.6-luna',
     instructions,
     input: `The student has video production class on ${body.date} at ${body.time}. Give one very short, loud, friendly reminder for the end of class.`,
-  }, callback);
-  request.end();
+    }, (status, data) => {
+      if (status === 401 && !retried) {
+        invalidateKey();
+        askOpenAI(body, callback, true);
+        return;
+      }
+      callback(status, data);
+    }, apiKey);
+    request.end();
+  } catch (error) {
+    callback(0, JSON.stringify({ error: { message: error.message, fix: error.fix } }));
+  }
 }
 
-function httpsRequest(apiPath, payload, callback) {
+function httpsRequest(apiPath, payload, callback, apiKey) {
   const https = require('https');
   const request = https.request({ hostname: 'api.openai.com', path: apiPath, method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' } }, (response) => {
     let data = '';
@@ -46,9 +52,13 @@ const server = http.createServer((request, response) => {
   request.on('end', () => {
     let body;
     try { body = JSON.parse(raw); } catch { response.writeHead(400); return response.end(JSON.stringify({ error: 'bad request' })); }
-    if (!apiKey || apiKey === 'paste-your-key-here') { response.writeHead(500); return response.end(JSON.stringify({ error: 'missing key' })); }
     askOpenAI(body, (status, data) => {
-      if (status < 200 || status >= 300) { response.writeHead(502); return response.end(JSON.stringify({ error: 'OpenAI unavailable' })); }
+      if (status < 200 || status >= 300) {
+        const error = JSON.parse(data).error || { message: 'The AI request failed.', fix: 'Check the MindDo settings and server.' };
+        console.error(error.fix);
+        response.writeHead(502, { 'Content-Type': 'application/json' });
+        return response.end(JSON.stringify({ error }));
+      }
       const result = JSON.parse(data);
       const message = result.output_text || 'Turn the camera off, ask the teacher if you need help, and follow the camera manual.';
       response.writeHead(200, { 'Content-Type': 'application/json' });
