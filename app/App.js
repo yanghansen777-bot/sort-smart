@@ -6,6 +6,7 @@ import { Alert, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, 
 
 const HELPER_URL = 'http://192.168.86.29:3001/ask';
 const AI_URL = Platform.OS === 'web' ? '/api/ask' : HELPER_URL;
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
@@ -14,6 +15,7 @@ Notifications.setNotificationHandler({
 export default function App() {
   const [classDate, setClassDate] = useState('2026-11-12');
   const [classTime, setClassTime] = useState('15:30');
+  const [selectedDays, setSelectedDays] = useState([4]);
   const [message, setMessage] = useState('');
   const [thinking, setThinking] = useState(false);
 
@@ -23,12 +25,17 @@ export default function App() {
       const reminder = JSON.parse(saved);
       setClassDate(reminder.date);
       setClassTime(reminder.time);
+      setSelectedDays(reminder.selectedDays || [new Date(`${reminder.date}T00:00:00`).getDay()]);
       setMessage(reminder.message);
     });
     if (Platform.OS !== 'web') Notifications.requestPermissionsAsync();
   }, []);
 
   async function createReminder() {
+    if (!selectedDays.length) {
+      Alert.alert('Choose a class day', 'Select at least one day of the week.');
+      return;
+    }
     setThinking(true);
     setMessage('');
     try {
@@ -43,15 +50,16 @@ export default function App() {
         throw new Error(data.error?.message || 'The AI request failed.');
       }
       setMessage(data.message);
-      await AsyncStorage.setItem('camera-reminder', JSON.stringify({ date: classDate, time: classTime, message: data.message }));
+      await AsyncStorage.setItem('camera-reminder', JSON.stringify({ date: classDate, time: classTime, selectedDays, message: data.message }));
       const date = new Date(`${classDate}T${classTime}:00`);
       if (Number.isNaN(date.getTime())) throw new Error('date error');
       try {
         if (Platform.OS === 'web') return;
-        await Notifications.scheduleNotificationAsync({
+        await Notifications.cancelAllScheduledNotificationsAsync();
+        await Promise.all(selectedDays.map((weekday) => Notifications.scheduleNotificationAsync({
           content: { title: 'Camera Reminder', body: data.message },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
-        });
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday: weekday === 0 ? 1 : weekday + 1, hour: Number(classTime.split(':')[0]), minute: Number(classTime.split(':')[1]) },
+        })));
       } catch {
         Alert.alert('Reminder saved', 'The reminder is ready, but notifications are turned off. Enable notifications for Expo Go in iPad Settings.');
       }
@@ -76,8 +84,15 @@ export default function App() {
         )}
         <Text style={styles.label}>Class end time</Text>
         <TextInput accessibilityLabel="Class end time" style={styles.input} value={classTime} onChangeText={setClassTime} placeholder="HH:MM" />
+        <Text style={styles.label}>Class days</Text>
+        <View style={styles.daysRow}>
+          {DAY_NAMES.map((day, index) => {
+            const selected = selectedDays.includes(index);
+            return <Pressable key={day} accessibilityRole="button" onPress={() => setSelectedDays((days) => selected ? days.filter((value) => value !== index) : [...days, index])} style={[styles.dayButton, selected && styles.daySelected]}><Text style={[styles.dayText, selected && styles.dayTextSelected]}>{day}</Text></Pressable>;
+          })}
+        </View>
         <Pressable accessibilityRole="button" disabled={thinking} onPress={createReminder} style={[styles.button, thinking && styles.disabled]}>
-          <Text style={styles.buttonText}>{thinking ? 'Thinking…' : 'Remind me'}</Text>
+          <Text style={styles.buttonText}>{thinking ? 'Thinking…' : 'Save weekly reminders'}</Text>
         </Pressable>
         {message ? <View style={styles.card}><Text style={styles.cardTitle}>YOUR REMINDER</Text><Text style={styles.reminder}>{message}</Text></View> : null}
         <Text style={styles.safety}>Safety first: turn the camera off, ask the teacher if you need help, and follow the camera manual.</Text>
@@ -95,6 +110,11 @@ const styles = StyleSheet.create({
   webOuter: { backgroundColor: '#e7e4dc', alignItems: 'center' },
   webPhone: { width: 400, maxWidth: '100%', minHeight: '100vh', backgroundColor: '#10231d' },
   webDateInput: { backgroundColor: '#f5f7ed', borderRadius: 12, border: 'none', padding: 15, fontSize: 18, color: '#10231d', width: '100%', boxSizing: 'border-box' },
+  daysRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 5 },
+  dayButton: { backgroundColor: '#294239', borderRadius: 10, paddingVertical: 11, flex: 1, alignItems: 'center' },
+  daySelected: { backgroundColor: '#b8f36b' },
+  dayText: { color: '#f5f7ed', fontWeight: '700', fontSize: 12 },
+  dayTextSelected: { color: '#10231d' },
   content: { padding: 24, gap: 12 },
   eyebrow: { color: '#b8f36b', fontWeight: '800', letterSpacing: 2, fontSize: 13 },
   title: { color: '#f5f7ed', fontSize: 32, fontWeight: '800', lineHeight: 37, marginTop: 6 },
