@@ -13,8 +13,7 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
-  const [classDate, setClassDate] = useState('2026-11-12');
-  const [classTime, setClassTime] = useState('15:30');
+  const [sessions, setSessions] = useState([{ date: '2026-11-12', time: '15:30' }]);
   const [selectedDays, setSelectedDays] = useState([4]);
   const [message, setMessage] = useState('');
   const [thinking, setThinking] = useState(false);
@@ -23,8 +22,7 @@ export default function App() {
     AsyncStorage.getItem('camera-reminder').then((saved) => {
       if (!saved) return;
       const reminder = JSON.parse(saved);
-      setClassDate(reminder.date);
-      setClassTime(reminder.time);
+      setSessions(reminder.sessions || [{ date: reminder.date, time: reminder.time }]);
       setSelectedDays(reminder.selectedDays || [new Date(`${reminder.date}T00:00:00`).getDay()]);
       setMessage(reminder.message);
     });
@@ -39,10 +37,11 @@ export default function App() {
     setThinking(true);
     setMessage('');
     try {
-      const response = await fetch(AI_URL, {
+    const firstSession = sessions[0];
+    const response = await fetch(AI_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: classDate, time: classTime }),
+        body: JSON.stringify({ date: firstSession.date, time: firstSession.time }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -50,16 +49,20 @@ export default function App() {
         throw new Error(data.error?.message || 'The AI request failed.');
       }
       setMessage(data.message);
-      await AsyncStorage.setItem('camera-reminder', JSON.stringify({ date: classDate, time: classTime, selectedDays, message: data.message }));
-      const date = new Date(`${classDate}T${classTime}:00`);
-      if (Number.isNaN(date.getTime())) throw new Error('date error');
+      await AsyncStorage.setItem('camera-reminder', JSON.stringify({ sessions, selectedDays, message: data.message }));
+      const dates = sessions.map((session) => new Date(`${session.date}T${session.time}:00`));
+      if (dates.some((date) => Number.isNaN(date.getTime()))) throw new Error('Check each class date and time.');
       try {
         if (Platform.OS === 'web') return;
         await Notifications.cancelAllScheduledNotificationsAsync();
-        await Promise.all(selectedDays.map((weekday) => Notifications.scheduleNotificationAsync({
+        const weeklyReminders = selectedDays.map((weekday) => Notifications.scheduleNotificationAsync({
           content: { title: 'Camera Reminder', body: data.message },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday: weekday === 0 ? 1 : weekday + 1, hour: Number(classTime.split(':')[0]), minute: Number(classTime.split(':')[1]) },
-        })));
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday: weekday === 0 ? 1 : weekday + 1, hour: Number(firstSession.time.split(':')[0]), minute: Number(firstSession.time.split(':')[1]) },
+        }));
+        await Promise.all([...dates.map((date) => Notifications.scheduleNotificationAsync({
+          content: { title: 'Camera Reminder', body: data.message },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
+        })), ...weeklyReminders]);
       } catch {
         Alert.alert('Reminder saved', 'The reminder is ready, but notifications are turned off. Enable notifications for Expo Go in iPad Settings.');
       }
@@ -76,14 +79,17 @@ export default function App() {
         <Text style={styles.eyebrow}>CAMERA REMINDER</Text>
         <Text style={styles.title}>Leave the camera ready for the next person.</Text>
         <Text style={styles.subhead}>Tell me when video production class ends. I’ll remember it for you.</Text>
-        <Text style={styles.label}>Class date</Text>
-        {Platform.OS === 'web' ? (
-          <input aria-label="Class date" type="date" value={classDate} onChange={(event) => setClassDate(event.target.value)} style={styles.webDateInput} />
-        ) : (
-          <TextInput accessibilityLabel="Class date" style={styles.input} value={classDate} onChangeText={setClassDate} placeholder="YYYY-MM-DD" />
-        )}
-        <Text style={styles.label}>Class end time</Text>
-        <TextInput accessibilityLabel="Class end time" style={styles.input} value={classTime} onChangeText={setClassTime} placeholder="HH:MM" />
+        <Text style={styles.label}>Class dates and end times</Text>
+        {sessions.map((session, index) => <View key={`session-${index}`} style={styles.sessionRow}>
+          {Platform.OS === 'web' ? (
+            <input aria-label={`Class date ${index + 1}`} type="date" value={session.date} onChange={(event) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, date: event.target.value } : item))} style={styles.webDateInput} />
+          ) : (
+            <TextInput accessibilityLabel={`Class date ${index + 1}`} style={styles.input} value={session.date} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, date: value } : item))} placeholder="YYYY-MM-DD" />
+          )}
+          <TextInput accessibilityLabel={`Class time ${index + 1}`} style={styles.input} value={session.time} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, time: value } : item))} placeholder="HH:MM" />
+          {sessions.length > 1 ? <Pressable accessibilityRole="button" onPress={() => setSessions((items) => items.filter((_, itemIndex) => itemIndex !== index))}><Text style={styles.removeText}>Remove</Text></Pressable> : null}
+        </View>)}
+        <Pressable accessibilityRole="button" onPress={() => setSessions((items) => [...items, { date: '', time: '' }])}><Text style={styles.addText}>+ Add another class</Text></Pressable>
         <Text style={styles.label}>Class days</Text>
         <View style={styles.daysRow}>
           {DAY_NAMES.map((day, index) => {
@@ -111,6 +117,9 @@ const styles = StyleSheet.create({
   webPhone: { width: 400, maxWidth: '100%', minHeight: '100vh', backgroundColor: '#10231d' },
   webDateInput: { backgroundColor: '#f5f7ed', borderRadius: 12, border: 'none', padding: 15, fontSize: 18, color: '#10231d', width: '100%', boxSizing: 'border-box' },
   daysRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 5 },
+  sessionRow: { gap: 8, marginBottom: 4 },
+  addText: { color: '#b8f36b', fontSize: 15, fontWeight: '800', marginTop: 2 },
+  removeText: { color: '#f2a6a6', fontSize: 13, fontWeight: '700' },
   dayButton: { backgroundColor: '#294239', borderRadius: 10, paddingVertical: 11, flex: 1, alignItems: 'center' },
   daySelected: { backgroundColor: '#b8f36b' },
   dayText: { color: '#f5f7ed', fontWeight: '700', fontSize: 12 },

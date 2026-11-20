@@ -7,6 +7,7 @@ OpenAI model available with “luna” in its name: `gpt-5.6-luna`
 - Version 1 flow: enter class date/time, ask the AI once, save the reminder on the phone, and schedule a notification.
 - Website date field now opens a calendar picker so students can choose a class date by month and year.
 - Students can now select one or more weekly class days and one class end time; the phone schedules a repeating reminder for each selected day.
+- Students can also add multiple specific class dates and end times before saving reminders.
 - Safety reminder is built into the AI instructions and the screen.
 - Local helper is in `helper.js`; the server uses `getKey()` to obtain a temporary key from MindDo and never puts it in the app.
 - Web version uses a 400px phone frame and calls the Vercel function in `api/ask.js`.
