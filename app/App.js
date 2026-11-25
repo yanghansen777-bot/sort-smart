@@ -17,6 +17,7 @@ export default function App() {
   const [selectedDays, setSelectedDays] = useState([4]);
   const [message, setMessage] = useState('');
   const [thinking, setThinking] = useState(false);
+  const [checklist, setChecklist] = useState({ battery: false, sdCard: false, cameraOff: false });
 
   useEffect(() => {
     AsyncStorage.getItem('camera-reminder').then((saved) => {
@@ -25,6 +26,7 @@ export default function App() {
       setSessions(reminder.sessions || [{ date: reminder.date, time: reminder.time }]);
       setSelectedDays(reminder.selectedDays || [new Date(`${reminder.date}T00:00:00`).getDay()]);
       setMessage(reminder.message);
+      setChecklist(reminder.checklist || { battery: false, sdCard: false, cameraOff: false });
     });
     if (Platform.OS !== 'web') {
       Notifications.requestPermissionsAsync();
@@ -52,7 +54,9 @@ export default function App() {
         throw new Error(data.error?.message || 'The AI request failed.');
       }
       setMessage(data.message);
-      await AsyncStorage.setItem('camera-reminder', JSON.stringify({ sessions, selectedDays, message: data.message }));
+      const freshChecklist = { battery: false, sdCard: false, cameraOff: false };
+      setChecklist(freshChecklist);
+      await AsyncStorage.setItem('camera-reminder', JSON.stringify({ sessions, selectedDays, message: data.message, checklist: freshChecklist }));
       const dates = sessions.map((session) => new Date(`${session.date}T${session.time}:00`));
       if (dates.some((date) => Number.isNaN(date.getTime()))) throw new Error('Check each class date and time.');
       try {
@@ -104,6 +108,17 @@ export default function App() {
           <Text style={styles.buttonText}>{thinking ? 'Thinking…' : 'Save weekly reminders'}</Text>
         </Pressable>
         {message ? <View accessibilityLiveRegion="assertive" style={styles.card}><Text style={styles.cardTitle}>CAMERA CHECK — NOTICE</Text><Text style={styles.reminder}>{message}</Text></View> : null}
+        {message ? <View style={styles.checklist}>
+          <Text style={styles.checklistTitle}>CHECK BEFORE YOU LEAVE</Text>
+          {[['battery', 'Battery removed'], ['sdCard', 'SD card removed'], ['cameraOff', 'Camera turned off']].map(([key, label]) => {
+            const checked = checklist[key];
+            return <Pressable key={key} accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={() => setChecklist((current) => {
+              const next = { ...current, [key]: !current[key] };
+              AsyncStorage.mergeItem('camera-reminder', JSON.stringify({ checklist: next }));
+              return next;
+            })} style={[styles.checkRow, checked && styles.checkRowDone]}><Text style={[styles.checkMark, checked && styles.checkMarkDone]}>{checked ? '✓' : '○'}</Text><Text style={[styles.checkLabel, checked && styles.checkLabelDone]}>{label}</Text></Pressable>;
+          })}
+        </View> : null}
         <Text style={styles.safety}>Safety first: turn the camera off, ask the teacher if you need help, and follow the camera manual.</Text>
       </View>
       <StatusBar style="auto" />
@@ -139,5 +154,13 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#b8f36b', borderRadius: 16, padding: 20, marginTop: 16, borderWidth: 3, borderColor: '#f5f7ed' },
   cardTitle: { color: '#10231d', fontSize: 14, fontWeight: '900', letterSpacing: 1.5 },
   reminder: { color: '#10231d', fontSize: 27, lineHeight: 33, fontWeight: '900', marginTop: 8 },
+  checklist: { backgroundColor: '#f5f7ed', borderRadius: 16, padding: 16, marginTop: 4 },
+  checklistTitle: { color: '#51705c', fontSize: 13, fontWeight: '900', letterSpacing: 1.2, marginBottom: 8 },
+  checkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: '#d8ded5' },
+  checkRowDone: { backgroundColor: '#dff7ae' },
+  checkMark: { color: '#51705c', fontSize: 28, width: 38, textAlign: 'center' },
+  checkMarkDone: { color: '#245c32', fontWeight: '900' },
+  checkLabel: { color: '#10231d', fontSize: 17, fontWeight: '700' },
+  checkLabelDone: { color: '#245c32', textDecorationLine: 'line-through' },
   safety: { color: '#b8c8bd', fontSize: 13, lineHeight: 19, marginTop: 12 },
 });
