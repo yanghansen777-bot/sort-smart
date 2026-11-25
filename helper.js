@@ -11,7 +11,7 @@ async function askOpenAI(body, callback, retried = false) {
     const request = httpsRequest('/v1/responses', {
     model: 'gpt-5.6-luna',
     instructions,
-    input: `The student has video production class on ${body.date} at ${body.time}. Give one very short, loud, friendly reminder for the end of class.`,
+      input: body.question?.trim() || `The student has video production class on ${body.date} at ${body.time}. Give one very short, loud, friendly reminder for the end of class.`,
     }, (status, data) => {
       if (status === 401 && !retried) {
         invalidateKey();

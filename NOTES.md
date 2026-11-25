@@ -11,6 +11,7 @@ OpenAI model available with “luna” in its name: `gpt-5.6-luna`
 - Verified on November 19, 2026: weekly class days and end times build successfully for web and iOS/Expo Go.
 - Reminder notifications now use a loud default sound, strong vibration/priority where supported, and a high-contrast in-app notice card.
 - After saving a reminder, the user can check off battery removed, SD card removed, and camera turned off; checklist progress is saved on the phone.
+- Users can now either ask a question in the optional AI box or leave it blank and use their class dates and times.
 - Safety reminder is built into the AI instructions and the screen.
 - Local helper is in `helper.js`; the server uses `getKey()` to obtain a temporary key from MindDo and never puts it in the app.
 - Web version uses a 400px phone frame and calls the Vercel function in `api/ask.js`.

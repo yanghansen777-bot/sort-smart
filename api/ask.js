@@ -20,7 +20,7 @@ module.exports = async function handler(request, response) {
     body: JSON.stringify({
       model: 'gpt-5.6-luna',
       instructions,
-      input: `The student has video production class on ${date} at ${time}. Give one very short, loud, friendly reminder for the end of class.`,
+      input: request.body.question?.trim() || `The student has video production class on ${date} at ${time}. Give one very short, loud, friendly reminder for the end of class.`,
     }),
     });
     if (openAIResponse.status === 401) {
@@ -28,7 +28,7 @@ module.exports = async function handler(request, response) {
       const fresh = await getKey({ force: true });
       openAIResponse = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST', headers: { Authorization: `Bearer ${fresh.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-5.6-luna', instructions, input: `The student has video production class on ${date} at ${time}. Give one very short, loud, friendly reminder for the end of class.` }),
+        body: JSON.stringify({ model: 'gpt-5.6-luna', instructions, input: request.body.question?.trim() || `The student has video production class on ${date} at ${time}. Give one very short, loud, friendly reminder for the end of class.` }),
       });
     }
 

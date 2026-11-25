@@ -16,6 +16,7 @@ export default function App() {
   const [sessions, setSessions] = useState([{ date: '2026-11-12', time: '15:30' }]);
   const [selectedDays, setSelectedDays] = useState([4]);
   const [message, setMessage] = useState('');
+  const [question, setQuestion] = useState('');
   const [thinking, setThinking] = useState(false);
   const [checklist, setChecklist] = useState({ battery: false, sdCard: false, cameraOff: false });
 
@@ -46,7 +47,7 @@ export default function App() {
     const response = await fetch(AI_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: firstSession.date, time: firstSession.time }),
+        body: JSON.stringify({ date: firstSession.date, time: firstSession.time, question: question.trim() }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -86,6 +87,8 @@ export default function App() {
         <Text style={styles.eyebrow}>CAMERA REMINDER</Text>
         <Text style={styles.title}>Leave the camera ready for the next person.</Text>
         <Text style={styles.subhead}>Tell me when video production class ends. I’ll remember it for you.</Text>
+        <Text style={styles.label}>Ask the AI (optional)</Text>
+        <TextInput accessibilityLabel="Ask the AI" style={[styles.input, styles.questionInput]} value={question} onChangeText={setQuestion} placeholder="Or type a question about camera safety" multiline />
         <Text style={styles.label}>Class dates and end times</Text>
         {sessions.map((session, index) => <View key={`session-${index}`} style={styles.sessionRow}>
           {Platform.OS === 'web' ? (
@@ -148,6 +151,7 @@ const styles = StyleSheet.create({
   subhead: { color: '#c7d3cb', fontSize: 17, lineHeight: 24, marginBottom: 16 },
   label: { color: '#f5f7ed', fontSize: 15, fontWeight: '700', marginTop: 4 },
   input: { backgroundColor: '#f5f7ed', borderRadius: 12, padding: 15, fontSize: 18, color: '#10231d' },
+  questionInput: { minHeight: 58, textAlignVertical: 'top' },
   button: { backgroundColor: '#b8f36b', borderRadius: 12, padding: 17, alignItems: 'center', marginTop: 8 },
   disabled: { opacity: 0.55 },
   buttonText: { color: '#10231d', fontWeight: '800', fontSize: 18 },
