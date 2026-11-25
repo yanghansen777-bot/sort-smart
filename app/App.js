@@ -122,8 +122,8 @@ export default function App() {
         <Pressable accessibilityRole="button" disabled={thinking} onPress={createReminder} style={[styles.button, thinking && styles.disabled]}>
           <Text style={styles.buttonText}>{thinking ? 'Thinking…' : taskMode === 'question' ? 'Ask AI' : 'Save weekly reminders'}</Text>
         </Pressable>
-        {message ? <View accessibilityLiveRegion="assertive" style={styles.card}><Text style={styles.cardTitle}>CAMERA CHECK — NOTICE</Text><Text style={styles.reminder}>{message}</Text></View> : null}
-        {message ? <View style={styles.checklist}>
+        {message ? <View accessibilityLiveRegion="assertive" style={styles.card}><Text style={styles.cardTitle}>{taskMode === 'question' ? 'AI RESPONSE' : 'CAMERA CHECK — NOTICE'}</Text><Text style={styles.reminder}>{message}</Text></View> : null}
+        {message && taskMode === 'schedule' ? <View style={styles.checklist}>
           <Text style={styles.checklistTitle}>CHECK BEFORE YOU LEAVE</Text>
           {[['battery', 'Battery removed'], ['sdCard', 'SD card removed'], ['cameraOff', 'Camera turned off']].map(([key, label]) => {
             const checked = checklist[key];

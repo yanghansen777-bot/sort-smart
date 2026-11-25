@@ -14,6 +14,7 @@ OpenAI model available with “luna” in its name: `gpt-5.6-luna`
 - Users can now either ask a question in the optional AI box or leave it blank and use their class dates and times.
 - On the website, schedule mode uses the calendar and time picker; question mode uses a text box for the AI.
 - Users can switch between “Set class schedule” and “Ask the AI”; only the selected workflow is shown, and they can switch back anytime.
+- Ask the AI mode displays the AI’s response clearly and does not show the schedule checklist.
 - Safety reminder is built into the AI instructions and the screen.
 - Local helper is in `helper.js`; the server uses `getKey()` to obtain a temporary key from MindDo and never puts it in the app.
 - Web version uses a 400px phone frame and calls the Vercel function in `api/ask.js`.
