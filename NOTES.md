@@ -9,6 +9,7 @@ OpenAI model available with “luna” in its name: `gpt-5.6-luna`
 - Students can now select one or more weekly class days and one class end time; the phone schedules a repeating reminder for each selected day.
 - Students can also add multiple specific class dates and end times before saving reminders.
 - Verified on November 19, 2026: weekly class days and end times build successfully for web and iOS/Expo Go.
+- Reminder notifications now use a loud default sound, strong vibration/priority where supported, and a high-contrast in-app notice card.
 - Safety reminder is built into the AI instructions and the screen.
 - Local helper is in `helper.js`; the server uses `getKey()` to obtain a temporary key from MindDo and never puts it in the app.
 - Web version uses a 400px phone frame and calls the Vercel function in `api/ask.js`.

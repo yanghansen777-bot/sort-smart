@@ -26,7 +26,10 @@ export default function App() {
       setSelectedDays(reminder.selectedDays || [new Date(`${reminder.date}T00:00:00`).getDay()]);
       setMessage(reminder.message);
     });
-    if (Platform.OS !== 'web') Notifications.requestPermissionsAsync();
+    if (Platform.OS !== 'web') {
+      Notifications.requestPermissionsAsync();
+      if (Platform.OS === 'android') Notifications.setNotificationChannelAsync('camera-reminder', { name: 'Camera Reminder', importance: Notifications.AndroidImportance.MAX, sound: 'default', vibrationPattern: [0, 250, 250, 250] });
+    }
   }, []);
 
   async function createReminder() {
@@ -56,11 +59,11 @@ export default function App() {
         if (Platform.OS === 'web') return;
         await Notifications.cancelAllScheduledNotificationsAsync();
         const weeklyReminders = selectedDays.map((weekday) => Notifications.scheduleNotificationAsync({
-          content: { title: 'Camera Reminder', body: data.message },
+          content: { title: 'CAMERA CHECK', body: data.message, sound: 'default', priority: Notifications.AndroidNotificationPriority.MAX, channelId: 'camera-reminder' },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday: weekday === 0 ? 1 : weekday + 1, hour: Number(firstSession.time.split(':')[0]), minute: Number(firstSession.time.split(':')[1]) },
         }));
         await Promise.all([...dates.map((date) => Notifications.scheduleNotificationAsync({
-          content: { title: 'Camera Reminder', body: data.message },
+          content: { title: 'CAMERA CHECK', body: data.message, sound: 'default', priority: Notifications.AndroidNotificationPriority.MAX, channelId: 'camera-reminder' },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
         })), ...weeklyReminders]);
       } catch {
@@ -100,7 +103,7 @@ export default function App() {
         <Pressable accessibilityRole="button" disabled={thinking} onPress={createReminder} style={[styles.button, thinking && styles.disabled]}>
           <Text style={styles.buttonText}>{thinking ? 'Thinking…' : 'Save weekly reminders'}</Text>
         </Pressable>
-        {message ? <View style={styles.card}><Text style={styles.cardTitle}>YOUR REMINDER</Text><Text style={styles.reminder}>{message}</Text></View> : null}
+        {message ? <View accessibilityLiveRegion="assertive" style={styles.card}><Text style={styles.cardTitle}>CAMERA CHECK — NOTICE</Text><Text style={styles.reminder}>{message}</Text></View> : null}
         <Text style={styles.safety}>Safety first: turn the camera off, ask the teacher if you need help, and follow the camera manual.</Text>
       </View>
       <StatusBar style="auto" />
@@ -133,8 +136,8 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#b8f36b', borderRadius: 12, padding: 17, alignItems: 'center', marginTop: 8 },
   disabled: { opacity: 0.55 },
   buttonText: { color: '#10231d', fontWeight: '800', fontSize: 18 },
-  card: { backgroundColor: '#f5f7ed', borderRadius: 16, padding: 18, marginTop: 16 },
-  cardTitle: { color: '#51705c', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
-  reminder: { color: '#10231d', fontSize: 24, lineHeight: 30, fontWeight: '800', marginTop: 8 },
+  card: { backgroundColor: '#b8f36b', borderRadius: 16, padding: 20, marginTop: 16, borderWidth: 3, borderColor: '#f5f7ed' },
+  cardTitle: { color: '#10231d', fontSize: 14, fontWeight: '900', letterSpacing: 1.5 },
+  reminder: { color: '#10231d', fontSize: 27, lineHeight: 33, fontWeight: '900', marginTop: 8 },
   safety: { color: '#b8c8bd', fontSize: 13, lineHeight: 19, marginTop: 12 },
 });
