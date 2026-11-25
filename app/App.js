@@ -96,7 +96,11 @@ export default function App() {
           ) : (
             <TextInput accessibilityLabel={`Class date ${index + 1}`} style={styles.input} value={session.date} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, date: value } : item))} placeholder="YYYY-MM-DD" />
           )}
-          <TextInput accessibilityLabel={`Class time ${index + 1}`} style={styles.input} value={session.time} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, time: value } : item))} placeholder="HH:MM" />
+          {Platform.OS === 'web' ? (
+            <input aria-label={`Class time ${index + 1}`} type="time" value={session.time} onChange={(event) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, time: event.target.value } : item))} style={styles.webTimeInput} />
+          ) : (
+            <TextInput accessibilityLabel={`Class time ${index + 1}`} style={styles.input} value={session.time} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, time: value } : item))} placeholder="HH:MM" />
+          )}
           {sessions.length > 1 ? <Pressable accessibilityRole="button" onPress={() => setSessions((items) => items.filter((_, itemIndex) => itemIndex !== index))}><Text style={styles.removeText}>Remove</Text></Pressable> : null}
         </View>)}
         <Pressable accessibilityRole="button" onPress={() => setSessions((items) => [...items, { date: '', time: '' }])}><Text style={styles.addText}>+ Add another class</Text></Pressable>
@@ -137,6 +141,7 @@ const styles = StyleSheet.create({
   webOuter: { backgroundColor: '#e7e4dc', alignItems: 'center' },
   webPhone: { width: 400, maxWidth: '100%', minHeight: '100vh', backgroundColor: '#10231d' },
   webDateInput: { backgroundColor: '#f5f7ed', borderRadius: 12, border: 'none', padding: 15, fontSize: 18, color: '#10231d', width: '100%', boxSizing: 'border-box' },
+  webTimeInput: { backgroundColor: '#f5f7ed', borderRadius: 12, border: 'none', padding: 15, fontSize: 18, color: '#10231d', width: '100%', boxSizing: 'border-box' },
   daysRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 5 },
   sessionRow: { gap: 8, marginBottom: 4 },
   addText: { color: '#b8f36b', fontSize: 15, fontWeight: '800', marginTop: 2 },
