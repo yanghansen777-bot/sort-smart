@@ -19,7 +19,7 @@ export default function App() {
   const [question, setQuestion] = useState('');
   const [thinking, setThinking] = useState(false);
   const [checklist, setChecklist] = useState({ battery: false, sdCard: false, cameraOff: false });
-  const [webInputMode, setWebInputMode] = useState('pick');
+  const [taskMode, setTaskMode] = useState('schedule');
 
   useEffect(() => {
     AsyncStorage.getItem('camera-reminder').then((saved) => {
@@ -37,7 +37,7 @@ export default function App() {
   }, []);
 
   async function createReminder() {
-    if (!selectedDays.length) {
+    if (taskMode === 'schedule' && !selectedDays.length) {
       Alert.alert('Choose a class day', 'Select at least one day of the week.');
       return;
     }
@@ -48,7 +48,7 @@ export default function App() {
     const response = await fetch(AI_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: firstSession.date, time: firstSession.time, question: question.trim() }),
+        body: JSON.stringify({ date: firstSession.date, time: firstSession.time, question: taskMode === 'question' ? question.trim() : '' }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -56,6 +56,7 @@ export default function App() {
         throw new Error(data.error?.message || 'The AI request failed.');
       }
       setMessage(data.message);
+      if (taskMode === 'question') return;
       const freshChecklist = { battery: false, sdCard: false, cameraOff: false };
       setChecklist(freshChecklist);
       await AsyncStorage.setItem('camera-reminder', JSON.stringify({ sessions, selectedDays, message: data.message, checklist: freshChecklist }));
@@ -88,19 +89,21 @@ export default function App() {
         <Text style={styles.eyebrow}>CAMERA REMINDER</Text>
         <Text style={styles.title}>Leave the camera ready for the next person.</Text>
         <Text style={styles.subhead}>Tell me when video production class ends. I’ll remember it for you.</Text>
-        <Text style={styles.label}>Ask the AI (optional)</Text>
-        <TextInput accessibilityLabel="Ask the AI" style={[styles.input, styles.questionInput]} value={question} onChangeText={setQuestion} placeholder="Or type a question about camera safety" multiline />
+        <View style={styles.modeRow}>
+          {['schedule', 'question'].map((mode) => <Pressable key={mode} accessibilityRole="button" onPress={() => setTaskMode(mode)} style={[styles.modeButton, taskMode === mode && styles.modeSelected]}><Text style={[styles.modeText, taskMode === mode && styles.modeTextSelected]}>{mode === 'schedule' ? 'Set class schedule' : 'Ask the AI'}</Text></Pressable>)}
+        </View>
+        {taskMode === 'question' ? <>
+          <Text style={styles.label}>Your question</Text>
+          <TextInput accessibilityLabel="Ask the AI" style={[styles.input, styles.questionInput]} value={question} onChangeText={setQuestion} placeholder="Type a question about camera safety" multiline />
+        </> : <>
         <Text style={styles.label}>Class dates and end times</Text>
-        {Platform.OS === 'web' ? <View style={styles.modeRow}>
-          {['pick', 'type'].map((mode) => <Pressable key={mode} accessibilityRole="button" onPress={() => setWebInputMode(mode)} style={[styles.modeButton, webInputMode === mode && styles.modeSelected]}><Text style={[styles.modeText, webInputMode === mode && styles.modeTextSelected]}>{mode === 'pick' ? 'Choose with controls' : 'Type it'}</Text></Pressable>)}
-        </View> : null}
         {sessions.map((session, index) => <View key={`session-${index}`} style={styles.sessionRow}>
-          {Platform.OS === 'web' && webInputMode === 'pick' ? (
+          {Platform.OS === 'web' ? (
             <input aria-label={`Class date ${index + 1}`} type="date" value={session.date} onChange={(event) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, date: event.target.value } : item))} style={styles.webDateInput} />
           ) : (
             <TextInput accessibilityLabel={`Class date ${index + 1}`} style={styles.input} value={session.date} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, date: value } : item))} placeholder="YYYY-MM-DD" />
           )}
-          {Platform.OS === 'web' && webInputMode === 'pick' ? (
+          {Platform.OS === 'web' ? (
             <input aria-label={`Class time ${index + 1}`} type="time" value={session.time} onChange={(event) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, time: event.target.value } : item))} style={styles.webTimeInput} />
           ) : (
             <TextInput accessibilityLabel={`Class time ${index + 1}`} style={styles.input} value={session.time} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, time: value } : item))} placeholder="HH:MM" />
@@ -115,8 +118,9 @@ export default function App() {
             return <Pressable key={day} accessibilityRole="button" onPress={() => setSelectedDays((days) => selected ? days.filter((value) => value !== index) : [...days, index])} style={[styles.dayButton, selected && styles.daySelected]}><Text style={[styles.dayText, selected && styles.dayTextSelected]}>{day}</Text></Pressable>;
           })}
         </View>
+        </>}
         <Pressable accessibilityRole="button" disabled={thinking} onPress={createReminder} style={[styles.button, thinking && styles.disabled]}>
-          <Text style={styles.buttonText}>{thinking ? 'Thinking…' : 'Save weekly reminders'}</Text>
+          <Text style={styles.buttonText}>{thinking ? 'Thinking…' : taskMode === 'question' ? 'Ask AI' : 'Save weekly reminders'}</Text>
         </Pressable>
         {message ? <View accessibilityLiveRegion="assertive" style={styles.card}><Text style={styles.cardTitle}>CAMERA CHECK — NOTICE</Text><Text style={styles.reminder}>{message}</Text></View> : null}
         {message ? <View style={styles.checklist}>
