@@ -19,6 +19,7 @@ export default function App() {
   const [question, setQuestion] = useState('');
   const [thinking, setThinking] = useState(false);
   const [checklist, setChecklist] = useState({ battery: false, sdCard: false, cameraOff: false });
+  const [webInputMode, setWebInputMode] = useState('pick');
 
   useEffect(() => {
     AsyncStorage.getItem('camera-reminder').then((saved) => {
@@ -90,13 +91,16 @@ export default function App() {
         <Text style={styles.label}>Ask the AI (optional)</Text>
         <TextInput accessibilityLabel="Ask the AI" style={[styles.input, styles.questionInput]} value={question} onChangeText={setQuestion} placeholder="Or type a question about camera safety" multiline />
         <Text style={styles.label}>Class dates and end times</Text>
+        {Platform.OS === 'web' ? <View style={styles.modeRow}>
+          {['pick', 'type'].map((mode) => <Pressable key={mode} accessibilityRole="button" onPress={() => setWebInputMode(mode)} style={[styles.modeButton, webInputMode === mode && styles.modeSelected]}><Text style={[styles.modeText, webInputMode === mode && styles.modeTextSelected]}>{mode === 'pick' ? 'Choose with controls' : 'Type it'}</Text></Pressable>)}
+        </View> : null}
         {sessions.map((session, index) => <View key={`session-${index}`} style={styles.sessionRow}>
-          {Platform.OS === 'web' ? (
+          {Platform.OS === 'web' && webInputMode === 'pick' ? (
             <input aria-label={`Class date ${index + 1}`} type="date" value={session.date} onChange={(event) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, date: event.target.value } : item))} style={styles.webDateInput} />
           ) : (
             <TextInput accessibilityLabel={`Class date ${index + 1}`} style={styles.input} value={session.date} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, date: value } : item))} placeholder="YYYY-MM-DD" />
           )}
-          {Platform.OS === 'web' ? (
+          {Platform.OS === 'web' && webInputMode === 'pick' ? (
             <input aria-label={`Class time ${index + 1}`} type="time" value={session.time} onChange={(event) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, time: event.target.value } : item))} style={styles.webTimeInput} />
           ) : (
             <TextInput accessibilityLabel={`Class time ${index + 1}`} style={styles.input} value={session.time} onChangeText={(value) => setSessions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, time: value } : item))} placeholder="HH:MM" />
@@ -144,6 +148,11 @@ const styles = StyleSheet.create({
   webTimeInput: { backgroundColor: '#f5f7ed', borderRadius: 12, border: 'none', padding: 15, fontSize: 18, color: '#10231d', width: '100%', boxSizing: 'border-box' },
   daysRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 5 },
   sessionRow: { gap: 8, marginBottom: 4 },
+  modeRow: { flexDirection: 'row', gap: 8 },
+  modeButton: { backgroundColor: '#294239', borderRadius: 10, padding: 12, flex: 1, alignItems: 'center' },
+  modeSelected: { backgroundColor: '#b8f36b' },
+  modeText: { color: '#f5f7ed', fontWeight: '800', fontSize: 13 },
+  modeTextSelected: { color: '#10231d' },
   addText: { color: '#b8f36b', fontSize: 15, fontWeight: '800', marginTop: 2 },
   removeText: { color: '#f2a6a6', fontSize: 13, fontWeight: '700' },
   dayButton: { backgroundColor: '#294239', borderRadius: 10, paddingVertical: 11, flex: 1, alignItems: 'center' },

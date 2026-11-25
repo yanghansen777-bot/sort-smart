@@ -13,6 +13,7 @@ OpenAI model available with “luna” in its name: `gpt-5.6-luna`
 - After saving a reminder, the user can check off battery removed, SD card removed, and camera turned off; checklist progress is saved on the phone.
 - Users can now either ask a question in the optional AI box or leave it blank and use their class dates and times.
 - On the website, dates can be typed or chosen from a calendar, and times can be typed or chosen from a time picker.
+- Website users can switch between “Choose with controls” and “Type it”; only the selected input method is shown, and they can switch back anytime.
 - Safety reminder is built into the AI instructions and the screen.
 - Local helper is in `helper.js`; the server uses `getKey()` to obtain a temporary key from MindDo and never puts it in the app.
 - Web version uses a 400px phone frame and calls the Vercel function in `api/ask.js`.
